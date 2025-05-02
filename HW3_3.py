@@ -15,6 +15,7 @@ class MainWindow(QWidget):
         self.line_edit = QLineEdit(self)
         self.button = QPushButton("Проверить", self)
         self.button.clicked.connect(self.change_label)
+        
 
         layout = QVBoxLayout()
         layout.addWidget(self.label)
