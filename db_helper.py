@@ -31,13 +31,20 @@ class DBHelper:
             conn.commit()
         finally:
             conn.close()
+        # conn = self._connect()
+        # cursor = conn.cursor()
+        # try:
+        #     cursor.execute("ALTER TABLE users ADD COLUMN skills TEXT")
+        #     conn.commit()
+        # finally:  
+        #     conn.close()
 
-    def add_user(self, name, age, email=None):
-        sql = "INSERT INTO users (name, age, email) VALUES (?, ?, ?)"
+    def add_user(self, name, age, email=None, skills=None):
+        sql = "INSERT INTO users (name, age, email, skills) VALUES (?, ?, ?, ?)"
         conn = self._connect()
         try:
             cur = conn.cursor()
-            cur.execute(sql, (name, age, email))
+            cur.execute(sql, (name, age, email, skills))
             conn.commit()
             return cur.lastrowid
         except Error as e:
@@ -57,17 +64,17 @@ class DBHelper:
             conn.close()
 
     def find_users(self, keyword):
-        sql = "SELECT * FROM users WHERE name LIKE ? OR email LIKE ?"
+        sql = "SELECT * FROM users WHERE name LIKE ? OR email LIKE ?  OR skills LIKE?"
         like = f"%{keyword}%"
         conn = self._connect()
         try:
             cur = conn.cursor()
-            cur.execute(sql, (like, like))
+            cur.execute(sql, (like, like, like))
             return cur.fetchall()
         finally:
             conn.close()
 
-    def update_user(self, user_id, name=None, age=None, email=None):
+    def update_user(self, user_id, name=None, age=None, email=None, skills=None):
         fields = []
         params = []
         if name is not None:
@@ -76,6 +83,8 @@ class DBHelper:
             fields.append("age = ?");    params.append(age)
         if email is not None:
             fields.append("email = ?");  params.append(email)
+        if skills is not None:
+            fields.append("skills=?"); params.append(skills)
 
         if not fields:
             return 0
@@ -89,6 +98,7 @@ class DBHelper:
             return cur.rowcount
         finally:
             conn.close()
+    
 
     def delete_user(self, user_id):
         sql = "DELETE FROM users WHERE id = ?"
@@ -110,6 +120,18 @@ class DBHelper:
         try:
            cur = conn.cursor()
            cur.execute(sql)
-           return cur.fetchone()
+           stats = dict(cur.fetchone())
+           
+           cur.execute("SELECT skills FROM users WHERE skills IS NOT NULL AND skills != ''")
+           skills_rows = cur.fetchall()
+
+           unique_skills = set()
+           for row in skills_rows:
+               skills = row["skills"]
+               skill_list = [s.strip() for s in skills.split(",") if s.strip()]
+               unique_skills.update(skill_list)
+
+           stats["unique_skills"] = len(unique_skills)
+           return stats
         finally:
              conn.close()
